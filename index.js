@@ -280,6 +280,10 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
           }
         }
       }
+      //fix html-webpack-plugin@next  append  src=undefined 
+      jsAssets = jsAssets.map(it => ({path : it}));
+      cssAssets = cssAssets.map(it => ({path : it}));
+
       if (appendAssets) {
         assets.js = assets.js.concat(jsAssets);
         assets.css = assets.css.concat(cssAssets);
