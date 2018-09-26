@@ -75,6 +75,9 @@ function extend (target, source) {
 function HtmlWebpackIncludeAssetsPlugin (options) {
   assert(isObject(options), 'HtmlWebpackIncludeAssetsPlugin options are required');
   var assets;
+  if (options.resolvePaths !== undefined) {
+    assert(isBoolean(options.resolvePaths), 'HtmlWebpackIncludeAssetsPlugin options should specify a resolvePaths that is a boolean');
+  }
   if (isString(options.assets) || isObject(options.assets)) {
     assets = [options.assets];
   } else {
@@ -148,7 +151,7 @@ function HtmlWebpackIncludeAssetsPlugin (options) {
       if (asset.attributes !== undefined) {
         assert(isObject(asset.attributes), 'HtmlWebpackIncludeAssetsPlugin options assets key array objects attributes property should be an object');
         forOwn(asset.attributes, function (value) {
-          assert(isString(value), 'HtmlWebpackIncludeAssetsPlugin options assets key array objects attributes property should be an object with string values');
+          assert(isString(value) || isBoolean(value), 'HtmlWebpackIncludeAssetsPlugin options assets key array objects attributes property should be an object with string or boolean values');
         });
       }
     } else {
@@ -216,7 +219,8 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
       var hash = self.options.hash;
       var includeAssetPrefix = publicPath === true ? defaultPublicPath : isString(publicPath) ? publicPath : '';
       var includeAssetHash = hash === true ? ('?' + compilation.hash) : '';
-      return includeAssetPrefix + includeAssetPath + includeAssetHash;
+      var assetPath = includeAssetPrefix + includeAssetPath + includeAssetHash;
+      return self.options.resolvePaths ? path.resolve(assetPath) : assetPath;
     };
 
     function onBeforeHtmlGeneration (htmlPluginData, callback) {
@@ -252,14 +256,12 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
             includeAssetPaths = [includeAsset.path];
           } else {
             var cwd = includeAsset.globPath !== undefined ? includeAsset.globPath : path.join(compiler.options.output.path, includeAsset.path);
-
             var globOptions = {cwd: cwd};
-
                     // assets will be an array of strings with all matching asset file names
             includeAssetPaths = glob.sync(includeAsset.glob, globOptions).map(
-                        function (globAsset) {
-                          return slash(path.join(includeAsset.path, globAsset));
-                        });
+              function (globAsset) {
+                return slash(path.join(includeAsset.path, globAsset));
+              });
           }
         } else {
           includeAssetType = null;
@@ -291,7 +293,6 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
         assets.js = jsAssets.concat(assets.js);
         assets.css = cssAssets.concat(assets.css);
       }
-
       if (callback) {
         callback(null, htmlPluginData);
       } else {
@@ -326,7 +327,13 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
         }
       }
 
-      tags = htmlPluginData.head.concat(htmlPluginData.body);
+      // HtmlWebpackPlugin 3.x
+      if (htmlPluginData.head) {
+        tags = htmlPluginData.head.concat(htmlPluginData.body);
+      } else {
+        // HtmlWebpackPlugin 4.x
+        tags = htmlPluginData.headTags.concat(htmlPluginData.bodyTags);
+      }
       tagCount = tags.length;
       for (var i = 0; i < tagCount; i++) {
         tag = tags[i];
@@ -345,10 +352,19 @@ HtmlWebpackIncludeAssetsPlugin.prototype.apply = function (compiler) {
 
     // Webpack 4+
     if (compilation.hooks) {
-      compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync('htmlWebpackIncludeAssetsPlugin', onBeforeHtmlGeneration);
-      compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync('htmlWebpackIncludeAssetsPlugin', onAlterAssetTag);
+      // HtmlWebPackPlugin 3.x
+      if (compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration) {
+        compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync('htmlWebpackIncludeAssetsPlugin', onBeforeHtmlGeneration);
+        compilation.hooks.htmlWebpackPluginAlterAssetTags.tapAsync('htmlWebpackIncludeAssetsPlugin', onAlterAssetTag);
+      } else {
+        // HtmlWebPackPlugin 4.x
+        var HtmlWebpackPlugin = require('html-webpack-plugin');
+        var hooks = HtmlWebpackPlugin.getHooks(compilation);
+        hooks.beforeAssetTagGeneration.tapAsync('htmlWebpackIncludeAssetsPlugin', onBeforeHtmlGeneration);
+        hooks.alterAssetTagGroups.tapAsync('htmlWebpackIncludeAssetsPlugin', onAlterAssetTag);
+      }
     } else {
-        // Webpack 3
+      // Webpack 3
       compilation.plugin('html-webpack-plugin-before-html-generation', onBeforeHtmlGeneration);
       compilation.plugin('html-webpack-plugin-alter-asset-tags', onAlterAssetTag);
     }

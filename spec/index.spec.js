@@ -4,7 +4,7 @@ var fs = require('fs');
 var cheerio = require('cheerio');
 var webpack = require('webpack');
 var rimraf = require('rimraf');
-var ExtractTextPlugin = require('extract-text-webpack-plugin');
+var MiniCssExtractPlugin = require('mini-css-extract-plugin');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var HtmlWebpackIncludeAssetsPlugin = require('../');
@@ -141,17 +141,17 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
       done();
     });
 
-    it('should throw an error if any of the asset options are objects with an attributes property with non-string values', function (done) {
+    it('should throw an error if any of the asset options are objects with an attributes property with non string or boolean values', function (done) {
       var theFunction = function () {
-        return new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js', { path: 'pathWithExtension.js', attributes: { crossorigin: 'crossorigin', id: null } }, 'bar.css'], append: false });
+        return new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js', { path: 'pathWithExtension.js', attributes: { crossorigin: 'crossorigin', id: null, enabled: true } }, 'bar.css'], append: false });
       };
-      expect(theFunction).toThrowError(/(options assets key array objects attributes property should be an object with string values)/);
+      expect(theFunction).toThrowError(/(options assets key array objects attributes property should be an object with string or boolean values)/);
       done();
     });
 
-    it('should not throw an error if any of the asset options are objects with an attributes property with string values', function (done) {
+    it('should not throw an error if any of the asset options are objects with an attributes property with string or boolean values', function (done) {
       var theFunction = function () {
-        return new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js', { path: 'pathWithExtension.js', attributes: { crossorigin: 'crossorigin', id: 'test' } }, 'bar.css'], append: false });
+        return new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js', { path: 'pathWithExtension.js', attributes: { crossorigin: 'crossorigin', id: 'test', enabled: true } }, 'bar.css'], append: false });
       };
       expect(theFunction).not.toThrowError();
       done();
@@ -215,6 +215,23 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
       done();
     });
 
+    it('should throw an error if the resolvePaths flag is not a boolean', function (done) {
+      var theFunction = function () {
+        return new HtmlWebpackIncludeAssetsPlugin({ assets: [], resolvePaths: 'hello' });
+      };
+
+      expect(theFunction).toThrowError(/(options should specify a resolvePaths that is a boolean)/);
+      done();
+    });
+
+    it('should not throw an error if the resolvePaths flag is a boolean', function (done) {
+      var theFunction = function () {
+        return new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js'], append: false, resolvePaths: true });
+      };
+      expect(theFunction).not.toThrowError();
+      done();
+    });
+
     it('should throw an error if the publicPath flag is not a boolean or string', function (done) {
       var theFunction = function () {
         return new HtmlWebpackIncludeAssetsPlugin({ assets: [], append: true, publicPath: 123 });
@@ -255,10 +272,8 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
         var theCheck = function () {
           return new HtmlWebpackIncludeAssetsPlugin({ assets: [], append: true, publicPath: true, hash: val });
         };
-
         expect(theCheck).toThrowError(theError);
       });
-
       done();
     });
   });
@@ -275,10 +290,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.js', append: true, publicPath: false })
         ]
@@ -312,10 +327,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.css', append: true, publicPath: false })
         ]
@@ -349,10 +364,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.js', append: false, publicPath: false })
         ]
@@ -386,10 +401,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.css', append: false, publicPath: false })
         ]
@@ -423,10 +438,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.css', 'foo.js'], append: false, publicPath: false, debug: true }),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['bar.css', 'bar.js'], append: true, publicPath: false, debug: true })
@@ -467,10 +482,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.css', 'bar.css', { path: 'baz.css' }], append: true, publicPath: false })
         ]
@@ -508,10 +523,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.css', 'bar.css'], append: false, publicPath: false })
         ]
@@ -549,10 +564,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({
             files: ['fail.html'],
@@ -589,10 +604,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({
             files: ['*.html'],
@@ -633,10 +648,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: [], append: true })
         ]
@@ -668,10 +683,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({
             assets: [
@@ -722,10 +737,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.js', 'foo.jsx'], append: true, jsExtensions: ['.js', '.jsx'] })
         ]
@@ -761,10 +776,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: ['foo.css', 'foo.style'], append: true, cssExtensions: ['.css', '.style'] })
         ]
@@ -800,10 +815,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: [{ path: 'assets/', globPath: 'spec/fixtures/', glob: 'nonexistant*.js' }, { path: 'assets/', globPath: 'spec/fixtures/', glob: 'nonexistant*.css' }], append: true })
         ]
@@ -835,10 +850,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new CopyWebpackPlugin([{ from: 'spec/fixtures/g*', to: 'assets/', flatten: true }]),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: [{ path: 'assets/', globPath: 'spec/fixtures/', glob: 'g*.js' }, { path: 'assets/', globPath: 'spec/fixtures/', glob: 'g*.css' }], append: true })
@@ -875,10 +890,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: [{ path: 'assets/abc.js', attributes: { id: 'abc' } }, { path: 'assets/def.css', attributes: { id: 'def', media: 'screen' } }, { path: 'assets/ghi.css' }], append: false })
         ]
@@ -919,10 +934,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           filename: '[name].js'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin({ hash: true }),
           new HtmlWebpackIncludeAssetsPlugin({ assets: [{ path: 'assets/abc.js', attributes: { id: 'abc' } }, { path: 'assets/def.css', attributes: { id: 'def', media: 'screen' } }, { path: 'assets/ghi.css' }], append: false, hash: true })
         ]
@@ -961,10 +976,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           publicPath: 'thePublicPath'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.js', append: false, publicPath: true })
         ]
@@ -999,10 +1014,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           publicPath: 'thePublicPath'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin(
             { assets: 'local-with-public-path.js', append: false, publicPath: true }
@@ -1046,10 +1061,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           publicPath: 'thePublicPath'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin(),
           new HtmlWebpackIncludeAssetsPlugin({ assets: 'foobar.js', append: false, publicPath: 'abc/' })
         ]
@@ -1086,10 +1101,10 @@ describe('HtmlWebpackIncludeAssetsPlugin', function () {
           publicPath: 'myPublic'
         },
         module: {
-          loaders: [{ test: /\.css$/, loader: ExtractTextPlugin.extract({ fallback: 'style-loader', use: 'css-loader' }) }]
+          rules: [{ test: /\.css$/, use: [MiniCssExtractPlugin.loader, 'css-loader'] }]
         },
         plugins: [
-          new ExtractTextPlugin({ filename: '[name].css' }),
+          new MiniCssExtractPlugin({ filename: '[name].css' }),
           new HtmlWebpackPlugin({ hash: true })
         ]
       };
